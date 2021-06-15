@@ -1,0 +1,19 @@
+.wrap {
+    background-color: skyblue;
+    min-height: 100vh;
+    padding-bottom: 50px;
+}
+
+.banner {
+    width: 100%;
+    height: 300px;
+
+    background-color: wheat;
+    background-image: url('logo_blue.png');
+
+    background-position: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+
+    cursor: pointer;
+}

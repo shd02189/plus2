@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Sparta Vocabulary Notebook</title>
+    <meta property="og:title" content="Sparta Vocabulary Notebook"/>
+    <meta property="og:description" content="mini project for Web Plus"/>
+    <meta property="og:image" content="{{ url_for('static', filename='logo_blue.png') }}"/>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+
+    <!-- font awesome CSS -->
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- mystyle CSS -->
+    <link href='{{ url_for("static", filename="mystyle.css") }}' rel="stylesheet">
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+    <style>
+        .wrap {
+            background-color: azure;
+            min-height: 100vh;
+            padding-bottom: 50px;
+        }
+
+        .banner {
+            width: 100%;
+            height: 300px;
+
+            background-color: azure;
+            background-image: url("https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Lower_Manhattan_skyline_-_June_2017.jpg/1920px-Lower_Manhattan_skyline_-_June_2017.jpg");
+
+            background-position: center;
+            background-size: contain;
+            background-repeat: no-repeat;
+
+            cursor: pointer;
+        }
+
+
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background-color: white;
+
+            border: solid 1px gray;
+            border-radius: 10px;
+        }
+
+        span.example {
+            color: gray;
+            font-size: 14px;
+        }
+
+        .btn-sparta {
+            color: #fff;
+            background-color: aqua;
+            border-color: aquamarine;
+        }
+
+        .btn-outline-sparta {
+            color: white;
+            background-color: aqua;
+            background-image: none;
+            border-color: white;
+        }
+    </style>
+
+    <script>
+        let word = '{{ word }}'
+        $(document).ready(function () {
+            {% if status=="old" %}
+                get_examples();
+            {% endif %}
+            {% if status=="new" %}
+                $("#examples").hide()
+            {% endif %}
+        })
+
+        function save_word() {
+            $.ajax({
+                type: "POST",
+                url: `/api/save_word`,
+                data: {
+                    word_give: "{{ word }}",
+                    definition_give: "{{ result.definitions[0].definition }}"
+                },
+                success: function (response) {
+                    alert(response["msg"])
+                    window.location.href = "/detail/{{ word }}?status_give=old"
+                }
+            });
+        }
+
+        function delete_word() {
+            $.ajax({
+                type: "POST",
+                url: `/api/delete_word`,
+                data: {
+                    word_give: word,
+                },
+                success: function (response) {
+                    alert(response["msg"])
+                    window.location.href = "/"
+                }
+            });
+        }
+
+        {#jinja2 로 채워넣을 거니까 기존에 ajex로 채워넣는 함수인 get_definition 은 주석처리 한다 #}
+
+        function get_definitions() {
+            $.ajax({
+                type: "GET",
+                url: `https://owlbot.info/api/v4/dictionary/${word}`,
+                beforeSend: function (xhr) {
+                    xhr.setRequestHeader("Authorization", "Token fcc9b92dd9a033a6f712280ba95093d8c41dba67");
+                },
+                data: {},
+                error: function (xhr, status, error) {
+                    alert("에러 발생!");
+                },
+                success: function (response) {
+                    console.log(response)
+                    $("#word").text(response["word"])
+                    if (response["pronunciation"] == null) {
+                        $("#pronunciation").text("")
+                    } else {
+                        $("#pronunciation").text(`/${response["pronunciation"]}/`)
+                    }
+                    let definitions = response["definitions"]
+                    $("#definitions").empty()
+                    for (let i = 0; i < definitions.length; i++) {
+                        let definition = definitions[i]
+                        let temp_html = ""
+                        if (definition["example"] == null) {
+                            temp_html = `<div id="definitions">
+                                <div style="padding:10px">
+                                    <i>${definition["type"]}</i>
+                                    <br>${definition["definition"]}<br>
+                                </div>
+                            </div>`
+                        } else {
+                            temp_html = `<div id="definitions">
+                                <div style="padding:10px">
+                                    <i>${definition["type"]}</i>
+                                    <br>${definition["definition"]}<br>
+                                    <span class="example">${definition["example"]}</span>
+                                </div>
+                            </div>`
+                        }
+                        $("#definitions").append(temp_html)
+                    }
+                }
+            })
+        }
+
+
+        function get_examples() {
+            $("#example-list").empty()
+
+            $.ajax({
+                type: "GET",
+                url: `/api/get_exs?word_give=${word}`,
+                data: {},
+                success: function (response) {
+                    let examples = response['examples']
+                    for (let i = 0; i < examples.length; i++) {
+                        let example = examples[i]['example']
+                        let temp_html =
+                            `<li id="ex-${i}">${example}&nbsp;&nbsp;&nbsp;<a
+                                    href="javascript:delete_ex(${i})">delete</a></li>`
+                        $('#example-list').append(temp_html)
+                    }
+                }
+            });
+        }
+
+        function add_ex() {
+            let new_ex = $('#new-example').val();
+            let word = '{{ word }}'
+            if (new_ex.toLowerCase().includes(word.toLowerCase())) {
+                $.ajax({
+                    type: "POST",
+                    url: `/api/save_ex`,
+                    data: {word_give: word, example_give: new_ex},
+                    success: function (response) {
+                        console.log(response)
+                        alert(response["msg"])
+                        get_examples();
+                        $('#new-example').val("")
+                    }
+                });
+            } else {
+                alert("the word '{{ word }}' is not included.");
+                return;
+            }
+
+        }
+
+
+        function delete_ex(i) {
+            console.log("deleting", i)
+            $.ajax({
+                type: "POST",
+                url: `/api/delete_ex`,
+                data: {
+                    word_give: word,
+                    number_give: i
+                },
+                success: function (response) {
+                    alert(response["msg"])
+                    get_examples()
+                }
+            });
+        }
+
+        function enterkey() {
+            if (window.event.keyCode == 13) {
+
+                // 엔터키가 눌렸을 때 실행할 내용
+                add_ex();
+            }
+        }
+
+    </script>
+
+</head>
+<body>
+<div class="wrap">
+    <div class="banner" onclick="window.location.href = '/'">
+    </div>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-end">
+            <div>
+                {#                <h1 id="word" style="display: inline;">{{ word }}</h1>#}
+                {#                <h1 id="word" style="display: inline;">{{ result.["word"] }}</h1>#}
+                <h1 id="word" style="display: inline;">{{ result.word }}</h1>
+                {% if result.pronunciation %}
+                    <h5 id="pronunciation" style="display: inline;">/{{ result.pronunciation }}/</h5>
+                {% endif %}
+            </div>
+            {% if status=="new" %}
+                <button id="btn-save" class="btn btn-outline-sparta btn-lg" onclick="save_word()"><i
+                        class="fa fa-floppy-o"
+                        aria-hidden="true"></i></button>
+            {% else %}
+                <button id="btn-delete" class="btn btn-sparta btn-lg" onclick="delete_word()"><i class="fa fa-trash-o"
+                                                                                                 aria-hidden="true"></i>
+                </button>
+            {% endif %}
+        </div>
+        <hr>
+        <div id="definitions">
+            {% for definition in result.definitions %}
+                <div style="padding:10px">
+                </div>
+                <i>{{ definition.type }}</i>
+                <br>{{ definition.definition.encode('ascii','ignore').decode('utf-8') }}<br>
+                {% if definition.example %}
+                    <span class="example">{{ definition.example.encode('ascii','ignore').decode('utf-8')|safe }}</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="examples" class="container">
+        <h3 style="text-align: center;margin-bottom:1rem">Write your own sentences!</h3>
+        <ul id="example-list">
+            <li id="ex-0">This sentence contains the word 'word'.&nbsp;&nbsp;&nbsp;<a
+                    href="javascript:delete_ex(0)">delete</a></li>
+            <li id="ex-1">I don't like using the MS Word program.&nbsp;&nbsp;&nbsp;<a
+                    href="javascript:delete_ex(1)">delete</a></li>
+        </ul>
+        <div class="d-flex justify-content-between" style="margin-left:20px;">
+            <input onkeyup="enterkey();" id="new-example" class="form-control form-control-sm"
+                   style="margin-right: 0.5rem">
+            <button class="btn btn-outline-secondary btn-sm" onclick="add_ex()">add</button>
+        </div>
+    </div>
+
+
+</div>
+</body>
+</html>
